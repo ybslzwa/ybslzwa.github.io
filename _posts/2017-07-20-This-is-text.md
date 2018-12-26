@@ -2,7 +2,7 @@
 title: This is the text title
 description: This is text description
 categories:
- - tutorial
+ - text
 tags:
  - text
 ---
