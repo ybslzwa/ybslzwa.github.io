@@ -388,7 +388,7 @@ upgrade 函数可一个修改可控大小（小于0x1000）的 内存空间name�
 
 ((struct _IO_FILE *)&main_arena+88)->\_chain 指向的是正好就是bin[4]，small bin[4]，所以前面的0x60刚好可以用上。
 
-![house_of_orange](./image/2019-02-02-how2heap_study_note/house_of_orange.png)
+![house_of_orange](/image/2019-02-02-how2heap_study_note/house_of_orange.png)
 
 具体步骤:
 
