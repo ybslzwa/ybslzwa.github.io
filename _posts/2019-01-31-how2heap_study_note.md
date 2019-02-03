@@ -6,7 +6,7 @@ tags:
   - Null
 ---
 
-记录一下学习how2heap的以下东西，如果有写的不对的地方，望各位大佬轻喷…
+记录一下学习how2heap的一些东西，如果有写的不对的地方，望各位大佬轻喷…
 
 # 0x1 House of Orange
 
@@ -388,13 +388,13 @@ upgrade 函数可一个修改可控大小（小于0x1000）的 内存空间name�
 
 ((struct _IO_FILE *)&main_arena+88)->\_chain 指向的是正好就是bin[4]，small bin[4]，所以前面的0x60刚好可以用上。
 
-![house_of_orange](../image/2019-02-02-how2heap_study_note/house_of_orange.png)
+![house_of_orange](/image/2019-02-02-how2heap_study_note/house_of_orange.png)
 
 具体步骤:
 
 1.伪造FILE指针（使fp->\_mode <= 0 && fp->\_IO_write_ptr > fp->\_IO_write_base成立）
 
-2.将 \_IO_list_all - 0x10 的值写入unsorted_bin
+2.将 \_IO_list_all - 0x10 的值写入 fp ->_IO_read_base（也就是unsorted_chunk -> bk）
 
 3.由于我们已经知道heap的地址，计算FILE指针底部到泄露heap地址的偏移量，将FILE指针底部地址写入vtable
 
