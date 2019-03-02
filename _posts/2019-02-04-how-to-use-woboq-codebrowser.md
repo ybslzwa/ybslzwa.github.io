@@ -20,7 +20,7 @@ tags:
 
 由于我怕直接编译生成器会遇见莫名其妙的问题（主要是懒），所以我决定使用 apt 添加源的方式安装。
 
-其他的安装方式在 [**这里**](https://woboq.com/codebrowser-download.htmlr)
+其他的安装方式在 [**这里**](https://woboq.com/codebrowser-download.html)
 
 ## 2. 安装
 
@@ -169,8 +169,7 @@ root@xxx:~# mv version-2.23 /var/www/html/
 
 # 0x3 Reference
 
-[https://code.woboq.org/](https://code.woboq.org/)
+- [https://code.woboq.org/](https://code.woboq.org/)
+- [https://github.com/woboq/woboq_codebrowser](https://github.com/woboq/woboq_codebrowser)
 
-[https://github.com/woboq/woboq_codebrowser](https://github.com/woboq/woboq_codebrowser)
-
-[http://www.sysnote.org/2015/08/25/use-new-glibc/](http://www.sysnote.org/2015/08/25/use-new-glibc/)
+- [http://www.sysnote.org/2015/08/25/use-new-glibc/](http://www.sysnote.org/2015/08/25/use-new-glibc/)
