@@ -6,11 +6,11 @@ tags:
   - Null
 ---
 
-这几天遇到一台靶机，这个 web 站点我一直没有办法拿下，没有办法，菜鸡的我只有想想办法白盒了，但是并没有这台 linux 的root密码，这就很难受了，就在网上查了点资料，在这里记录一下我常用的 linux 发行版恢复 root密码的方法。  
+这几天遇到一台靶机，这个 web 站点我一直没有办法拿下，没有办法，菜鸡的我只有想想办法白盒了，但是并没有这台 linux 的 root 密码，这就很难受了，就在网上查了点资料，在这里记录一下我常用的 linux 发行版恢复 root 密码的方法。  
 
 # 0x1 centos 6.9
 
-## 1. 修改 `kernel arguments`
+## 1. 修改 kernel arguments
 
 在 `centos 6.9` 这个版本中一开机会有5秒左右的倒计时，这里我们按下任意键，就会来到这个界面。
 
@@ -46,7 +46,7 @@ rw 是挂载硬盘的时候具有读写权限
 
 # 0x2 centos 7
 
-## 1. 修改 `kernel arguments`
+## 1. 修改 kernel arguments`
 
 `centos 7` 和 `centos 6` 的步骤是差不多的，首先启动系统按下任意键就到了个页面，选择第二个并按下 `e`
 
@@ -72,7 +72,7 @@ rw init=/bin/bash
 
 # 0x3 ubuntu 14.04
 
-## 1. 修改 `kernel arguments
+## 1. 修改 kernel arguments
 
 在 `ubuntu 14.04` 中，开机的同时按下任意键，进入到这里，选择 `Advanced options for Ubuntu`
 
@@ -85,7 +85,7 @@ rw init=/bin/bash
 在 `linux`  这一行的末尾加上
 
 ```
-
+rw init=/bin/bash
 ```
 
 ![ubuntu-14.04.5_3](/image/2019-03-03-linux_changed_root_passwd/ubuntu-14.04.5_3.png)
