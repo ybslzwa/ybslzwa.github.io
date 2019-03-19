@@ -104,7 +104,7 @@ rw init=/bin/bash
 
 
 
-# 0x4 Refence
+# 0x4 Reference
 
 - [https://en.wikipedia.org/wiki/Init](https://en.wikipedia.org/wiki/Init)
 - [https://wiki.archlinux.org/index.php/kernel_parameters](https://wiki.archlinux.org/index.php/kernel_parameters)
