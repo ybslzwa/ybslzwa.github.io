@@ -83,7 +83,7 @@ tags:
 
 日常 `ida` 打开，发现 `main` 函数中将 `argv[1]` 作为参数并调用了 `vuln` 函数，我们跟进：
 
-![protostar_format0_2](/image/format/protostar_format0_2.png)
+![protostar_format0_2](/image/2019-03-20-linux_pwn_format/protostar_format0_2.png)
 
 在这里很容易就发现了该文件的漏洞点，通过从 `sprintf` 将 `argv[1]` 的值写入到 `s` 中。
 
@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
 和上面一样，同样是通过 `main` 函数中将 `argv[1]` 作为参数并调用了 `vuln` 函数，直接看 `vuln` ：
 
-![protostar_format1_1](/image/format/protostar_format1_1.png)
+![protostar_format1_1](/image/2019-03-20-linux_pwn_format/protostar_format1_1.png)
 
 这里将 `argv[1]` 的值直接传入到 `printf` 中，我们需要做的就是将 .`bss` 上的 `target` 覆盖为任意不为 `0` 的值 ，就可以通过这个挑战了。
 
@@ -157,7 +157,7 @@ if __name__ == '__main__':
 
 这里的 `main` 函数直接调用 `vuln` 函数，我们直接看：
 
-![protostar_format2_1](/image/format/protostar_format2_1.png)
+![protostar_format2_1](/image/2019-03-20-linux_pwn_format/protostar_format2_1.png)
 
 简单分析一下，通过 `fgets` 函数将 `stdin` 的输入值写到 `s` 处，由于 `fgets` 限制了读取长度，所以这里并没有栈溢出。下面和 `format 1` 同样的流程，只不过这里要将 `target` 更改为具体的数值 `0x40`。
 
@@ -224,7 +224,7 @@ if __name__ == '__main__':
 
 直接看 `vuln` ：
 
-![protostar_format3_1](/image/format/protostar_format3_1.png)
+![protostar_format3_1](/image/2019-03-20-linux_pwn_format/protostar_format3_1.png)
 
 这里整体和 `format 2` 基本是一致的，所以那些定位就不赘述了。
 
@@ -279,11 +279,11 @@ if __name__ == '__main__':
 
 依旧直接看 `vuln` :
 
-![protostar_format4_1](/image/format/protostar_format4_1.png)
+![protostar_format4_1](/image/2019-03-20-linux_pwn_format/protostar_format4_1.png)
 
 这里在 `vuln` 中并没有找到 `flag` ，这个时候发现了一个 `hello` 函数
 
-![protostar_format4_1](/image/format/protostar_format4_1-1553014781021.png)
+![protostar_format4_1](/image/2019-03-20-linux_pwn_format/protostar_format4_1-1553014781021.png)
 
 到这里就很明白了，通过 `printf` 更改 `got` 表中 `exit` 所对应的值为 `hello` 函数。
 
