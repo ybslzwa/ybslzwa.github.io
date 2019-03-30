@@ -16,13 +16,13 @@ tags:
 
 由于我之前一直在 [**woboq**](https://code.woboq.org/userspace/glibc/) 看 glibc 的源码，觉得这个比较好用，所以这次就直接用它生成代码浏览器了。
 
-## 1. 选择安装方式
+## 0x11 选择安装方式
 
 由于我怕直接编译生成器会遇见莫名其妙的问题（主要是懒），所以我决定使用 apt 添加源的方式安装。
 
 其他的安装方式在 [**这里**](https://woboq.com/codebrowser-download.html)
 
-## 2. 安装
+## 0x12 安装
 
 由于我是`ubuntu 16.04`所以添加下面这条源进行安装，如果是 `ubuntu` 其他版本在 [**这里**](https://software.opensuse.org/download/package?project=home:pansenmann:woboq&package=woboq-codebrowser) 找到相对应的源。
 
@@ -38,7 +38,7 @@ sudo apt-get install woboq-codebrowser
 
 我在 [**这里**](https://github.com/woboq/woboq_codebrowser) 找到了如何使用生成器，首先我们需要 [**bear**](https://github.com/rizsotto/Bear) 配合 make 编译 glibc-2.23 的源码，用于生成 [**编译数据库**](https://sarcasm.github.io/notes/dev/compilation-database.html#what-is-a-compilation-database)，再用 `compile_commands.json` 配合生成器生成代码浏览器。
 
-## 1. 编译 glibc-2.23
+## 0x21 编译 glibc-2.23
 
 ### 下载源码
 
@@ -68,7 +68,7 @@ root@xxx:~/glibc-build# ../glibc-2.23/configure --prefix=~/glibc-build
 root@xxx:~/glibc-build# bear make -j9
 ```
 
-## 2. 生成代码浏览器
+## 0x22 生成代码浏览器
 
 当编译完成过后，会在 `glibc-build` 下生成 `compile_commands.json` 将它移入 `glibc-2.23` 源码目录下。
 
@@ -122,7 +122,7 @@ root@xxx:~# cp ./woboq_codebrowser/data . -r
 
 我用的火狐浏览器，在 `about:config` 将 `security.fileuri.strict_origin_policy` 设置为 `false`，但是还是不可以搜索，这就很难受了。没办法咯，搭建个 web 服务器吧。
 
-## 3. 搭建 web 服务器 
+## 0x23 搭建 web 服务器 
 
 我决定直接使用 apt 搭建 apache 服务器
 
@@ -159,7 +159,7 @@ root@xxx:~# mv version-2.23 /var/www/html/
 </html>
 ```
 
-## 4. 代码浏览器效果图
+## 0x24 代码浏览器效果图
 
 ![index](/image/2019-02-04-how-to-use-woboq-codebrowser/index.png)
 

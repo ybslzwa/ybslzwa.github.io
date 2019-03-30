@@ -10,7 +10,7 @@ tags:
 
 # 0x1 centos 6.9
 
-## 1. 修改 kernel arguments
+## 0x11 修改 kernel arguments
 
 在 `centos 6.9` 这个版本中一开机会有5秒左右的倒计时，这里我们按下任意键，就会来到这个界面。
 
@@ -32,7 +32,9 @@ rw 是挂载硬盘的时候具有读写权限
 
 ![CentOS_6.9_3](/image/2019-03-03-linux_changed_root_passwd/CentOS_6.9_3.png)
 
-## 2. 修改 root 密码
+
+
+## 0x12 修改 root 密码
 
 在这里我们就运行 `passwd` 常规改密码就好了
 
@@ -46,7 +48,7 @@ rw 是挂载硬盘的时候具有读写权限
 
 # 0x2 centos 7
 
-## 1. 修改 kernel arguments`
+## 0x21 修改 kernel arguments`
 
 `centos 7` 和 `centos 6` 的步骤是差不多的，首先启动系统按下任意键就到了个页面，选择第二个并按下 `e`
 
@@ -64,15 +66,36 @@ rw init=/bin/bash
 
  并按下 `ctrl` + `x` 进行启动系统
 
-## 2. 修改 root 密码
+
+
+## 0x22 修改 root 密码
 
 这里和 `centos 6` 的操作基本一致，所以不再赘述了。
 
 
 
+## 0x33 SElinux
+
+在有一次我修改 `centos 7` 密码的时候，重启发现所有的账户都被禁止登陆了，这个时候我也意识到了，可能是这里修改密码，触发了某个内核中的安全模块，这个时候我们就需要想办法抢救一下这台机器了。
+
+在百度上面找到了答案，是因为 `centos 7` 默认就开启 [`SElinux`](https://wiki.centos.org/zh/HowTos/SELinux) 的 `Enforcing` 模式，它会在系统上启用并实施 `SELinux` 的安全性政策，拒绝存取及记录行动。
+
+这个时候我们只需要 `重新标签整个档案系统` ，具体操作如下：
+
+```sh
+touch /.autorelabel
+reboot -f
+```
+
+在根目录创建这个文件，在开机的时候会卡住几分钟（重新标签整个档案系统），然后就可以使用刚才我们所设置的新密码登陆啦。
+
+注：这里如果还是出现错误，重新完成上述步骤，就可以了。
+
+
+
 # 0x3 ubuntu 14.04
 
-## 1. 修改 kernel arguments
+## 0x31 修改 kernel arguments
 
 在 `ubuntu 14.04` 中，开机的同时按下任意键，进入到这里，选择 `Advanced options for Ubuntu`
 
@@ -98,7 +121,7 @@ rw init=/bin/bash
 
 
 
-## 2. 修改 root 密码
+## 0x32 修改 root 密码
 
 这里和 `centos 6` 的操作基本一致，所以不再赘述了。
 

@@ -19,11 +19,11 @@ house of orange的先决条件：
 - 能够触发 unsorted bin attack
 - 需要空间伪造 FILE 结构体
 
-## 1. 概述
+## 0x11 概述
 
 House of orange 的核心就是在没有 free 的情况下释放掉 Top Chunk 并将 Top Chunk 放入到 Unsorted bin 中，然后利用 Unsorted bin attack 改写 _IO_list_all，使 _IO_list_all 指向 main_arena 中 Unsorted bin 的位置，伪造 _IO_FILE_plus 的 vtable 完成劫持程序。
 
-## 2. 原理
+## 0x12 原理
 
 ### 释放 top chunk ，并将 old_top 加入 unsorted bin
 
@@ -241,7 +241,7 @@ _IO_flush_all_lockp (int do_lock)
 
 
 
-## 3. house of orange writeup
+## 0x13 house of orange writeup
 
 例行检查一下程序，保护全开。
 
