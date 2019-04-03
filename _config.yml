@@ -317,7 +317,7 @@ post_meta:
 # Post wordcount display settings
 post_wordcount:
   item_text: true
-  wordcount: true
+  wordcount: false
   min2read: false
   separated_meta: true
 
@@ -523,7 +523,7 @@ rating:
 # Show number of visitors to each article.
 # You can visit https://leancloud.cn get AppID and AppKey.
 leancloud_visitors:
-  enable: false
+  enable: true
   app_id: bjP8NyhPLgWutEDhUCCYlArN-gzGzoHsz
   app_key: 4pGm0K2oVDaRAFl4YlcqVQkJ
 
@@ -541,7 +541,7 @@ busuanzi_count:
   site_pv_header: <i class="fa fa-eye"></i>
   site_pv_footer:
   # custom pv span for one page only
-  page_pv: true
+  page_pv: false
   page_pv_header: <i class="fa fa-eye"></i>
   page_pv_footer:
 
