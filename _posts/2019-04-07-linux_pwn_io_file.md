@@ -1,10 +1,12 @@
 ---
-title: 浅析IO_FILE利用
+title: 浅析 IO_FILE 利用
 categories:
   - linux_pwn
 tags:
   - Null
 ---
+
+`IO_FILE` 是一个很重要的技巧，在 `pwn` 中给我们提供一个其他 `GetShell` 的思路。
 
 
 

