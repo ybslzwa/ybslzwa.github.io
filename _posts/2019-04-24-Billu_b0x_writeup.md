@@ -358,7 +358,7 @@ if (mysqli_connect_errno())
 
 ## 0x44 第四种思路
 
-### 检查 phpmyadmin 配置文件
+### 0x441 检查 phpmyadmin 配置文件
 
 这里主要是靠运气，当看见 `phpmyadmin` 的登陆页面的时候，脑子里突然出现了一个大胆的想法，就是检查一下 `phpmyadmin` 的配置文件，然而果不其然。
 

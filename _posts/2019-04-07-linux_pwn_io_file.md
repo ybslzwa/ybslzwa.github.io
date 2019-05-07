@@ -22,7 +22,7 @@ tags:
 
 
 
-## 0x1 hctf 2018 - the_end && fake vtable
+## 0x21 hctf 2018 - the_end && fake vtable
 
 日常 `checsec` 一下：
 
