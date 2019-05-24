@@ -1,5 +1,5 @@
 ---
-title: 浅析栈溢出漏洞
+title: 浅析linux栈溢出漏洞
 categories:
   - linux_pwn
 tags:
