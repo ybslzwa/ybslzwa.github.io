@@ -1,5 +1,5 @@
 ---
-title: 浅析linux格式化字符串漏洞
+title: 浅析 linux_format 漏洞
 categories:
   - linux_pwn
 tags:

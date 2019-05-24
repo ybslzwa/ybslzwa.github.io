@@ -1,5 +1,5 @@
 ---
-title: 浅析 IO_FILE 利用
+title: 浅析 linux_IO_FILE 利用
 categories:
   - linux_pwn
 tags:
