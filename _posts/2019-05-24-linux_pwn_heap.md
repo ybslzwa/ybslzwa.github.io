@@ -6,9 +6,9 @@ tags:
   - Null
 ---
 
-在今年早些时候，我曾看过 `house of orange` 这中利用方式，但是当时并没有完完整整的读过 `malloc`、`free`、`malloc_consolidate` 等有关于内存分配的函数。
+在今年早些时候，我曾看过 `house of orange` 这种利用方式，但是当时并没有完完整整的读过 `malloc`、`free`、`malloc_consolidate` 等有关于内存分配的函数。
 
-最近读了这些函数的源码，但是发现代码量有点大啊，逐行的分析可能有点麻烦（主要是懒），所以我决定以题目的实际情况做具体利用分析，有什么不对的地方望大佬指出。
+最近读了这些函数的源码，本来准备写一个详细分析各种技巧的文章，但是代码量有点大啊，逐行的分析可能有点麻烦（主要是懒），所以我决定以题目的实际情况做具体利用分析，有什么不对的地方望大佬指出。
 
 
 
@@ -149,7 +149,7 @@ if __name__ == '__main__':
 
 ##### 第二种思路 && fastbin attack
 
-1. 利用 `heap_overflow` 修改 `fastbin` 链表将 chunk 分配到 `bss` 段
+1. 利用 `heap_overflow` 修改 `fastbin` 链表将 `chunk` 分配到 `bss` 段
 2. 然后利用 `2` 进行任意长度输入，覆盖掉整个 `chunk_ptr_list` 。
 
 ```c
@@ -261,7 +261,7 @@ if __name__ == '__main__':
 
 ![note2_process](/image/2019-05-24-linux_pwn_heap/note2_process.png)
 
-很明显这是一道很典型的菜单题，漏洞主要出在向 chunk 写数据这个函数：
+很明显这是一道很典型的菜单题，漏洞主要出在向 `chunk` 写数据这个函数：
 
 ![write_value_function](/image/2019-05-24-linux_pwn_heap/write_value_function.png)
 
@@ -275,13 +275,13 @@ if __name__ == '__main__':
 
 在程序分析中提到了使用 `unsafe_unlink` 是最好的选择了，这里具体说明一下怎样触发 `unlink` 的操作。
 
-1. 首先创建三个的 chunk，大小分别为 0x80、0x0、0x80。（这里的 0x0 通过 malloc 还是会申请一个 0x20 大小的 chunk）
-2. 当创建第一个 chunk 的时候将 fake chunk 构建好。（在 create_chunk 函数中可以写入零字节）
-3. free 掉第二个 chunk 。（使其加入到 fastbin ，这里为了再次执行 create_chunk 构建触发 unlink 的条件）
-4. 重新创建一个大小为 0x0 的 chunk，构建出触发 unlink 的条件。（由于上一步将其加入到 fastbin 中，这里再一次申请既可以写入零字节，又可以 heap_overflow。）
-5. 泄露并计算 libc 的基地址。
-6. 通过泄露的地址，将 system 写入到 atoi_got 中。
-7. 执行 atoi(“/bin/bash”) 。（相当于 system(“/bin/bash”)）
+1. 首先创建三个的 `chunk`，大小分别为 `0x80`、`0x0`、`0x80`。（这里的 `0x0` 通过 `malloc` 还是会申请一个 0x20 大小的 chunk）
+2. 当创建第一个 `chunk` 的时候将 `fake chunk` 构建好。（在 create_chunk 函数中可以写入零字节）
+3. `free` 掉第二个 `chunk` 。（使其加入到 `fastbin` ，这里为了再次执行 `create_chunk` 构建触发 `unlink` 的条件）
+4. 重新创建一个大小为 `0x0` 的 `chunk`，构建出触发 `unlink` 的条件。（由于上一步将其加入到 `fastbin` 中，这里再一次申请既可以写入零字节，又可以 `heap_overflow`。）
+5. 泄露并计算 `libc` 的基地址。
+6. 通过泄露的地址，将 `system` 写入到 `atoi_got` 中。
+7. 执行 `atoi(“/bin/bash”)` 。（相当于 `system(“/bin/bash”)`）
 
 `poc` ：
 
