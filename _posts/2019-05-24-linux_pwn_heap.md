@@ -578,11 +578,11 @@ if __name__ == '__main__':
 
 简单的 fuzz 过后得到整个程序的流程图。
 
-![b00ks_process](../image/2019-05-24-linux_pwn_heap/b00ks_process.jpg)
+![b00ks_process](/image/2019-05-24-linux_pwn_heap/b00ks_process.jpg)
 
 很难受，并没有发现这个程序存在栈溢出，但是发现了一个可以正好写入一个字节的地方。
 
-![b00ks_write_value_fuction](../image/2019-05-24-linux_pwn_heap/b00ks_write_value_fuction.png)
+![b00ks_write_value_fuction](/image/2019-05-24-linux_pwn_heap/b00ks_write_value_fuction.png)
 
 这个输入函数，由于使用不当，所以存在着 `off by one` 的漏洞，`book` 结构题存在着两个通过 `malloc` 申请的 `chunk` ，只要控制的好是可以触发 `unlink` 的，但是这里是开启了 `PIE` ，这种比较困难，所以只有另辟蹊径了。
 
@@ -594,7 +594,7 @@ if __name__ == '__main__':
 
 在程序的`.bss` 段我发现了 `author_name` 这个变量，正好可以利用 `off by one` 覆盖 `book_list` 两个字节。
 
-![b00ks_3](../image/2019-05-24-linux_pwn_heap/b00ks_3.png)
+![b00ks_3](/image/2019-05-24-linux_pwn_heap/b00ks_3.png)
 
 如上所述，基本思路就出来了。
 
